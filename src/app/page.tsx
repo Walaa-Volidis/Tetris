@@ -118,16 +118,40 @@ export default function TetrisGame() {
     [board]
   );
 
-  const startNewGame = () => {
-     setBoard(createEmptyBoard());
-      const newPiece = generateRandomPiece();
-      setCurrentPiece(newPiece);
-      setCurrentPosition({ x: Math.floor(BOARD_WIDTH / 2) - 1, y: -2 });
-      setGameOver(false);
-      setScore(0);
-      setGameStarted(true);
-      setIsPaused(false);
+  const renderBoard = () => {
+    const displayBoard = board.map((row) => [...row]);
 
+    if (currentPiece) {
+      for (let y = 0; y < currentPiece.shape.length; y++) {
+        for (let x = 0; x < currentPiece.shape[y].length; x++) {
+          if (currentPiece.shape[y][x]) {
+            const boardY = currentPosition.y + y;
+            const boardX = currentPosition.x + x;
+            if (
+              boardY >= 0 &&
+              boardY < BOARD_HEIGHT &&
+              boardX >= 0 &&
+              boardX < BOARD_WIDTH
+            ) {
+              displayBoard[boardY][boardX] = currentPiece.color;
+            }
+          }
+        }
+      }
+    }
+
+    return displayBoard;
+  };
+
+  const startNewGame = () => {
+    setBoard(createEmptyBoard());
+    const newPiece = generateRandomPiece();
+    setCurrentPiece(newPiece);
+    setCurrentPosition({ x: Math.floor(BOARD_WIDTH / 2) - 1, y: -2 });
+    setGameOver(false);
+    setScore(0);
+    setGameStarted(true);
+    setIsPaused(false);
   };
 
   return (
