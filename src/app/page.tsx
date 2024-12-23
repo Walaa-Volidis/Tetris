@@ -118,6 +118,18 @@ export default function TetrisGame() {
     [board]
   );
 
+  const startNewGame = () => {
+     setBoard(createEmptyBoard());
+      const newPiece = generateRandomPiece();
+      setCurrentPiece(newPiece);
+      setCurrentPosition({ x: Math.floor(BOARD_WIDTH / 2) - 1, y: -2 });
+      setGameOver(false);
+      setScore(0);
+      setGameStarted(true);
+      setIsPaused(false);
+
+  };
+
   return (
     <Card className="w-full max-w-lg mx-auto">
       <CardHeader>
