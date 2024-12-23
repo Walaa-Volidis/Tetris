@@ -60,10 +60,21 @@ const TETROMINOES = {
   },
 };
 
+type Piece = {
+  shape: number[][];
+  color: string;
+};
+
+type Position = {
+  x: number;
+  y: number;
+};
+
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 
-const createEmptyBoard = () => Array.from({length: BOARD_HEIGHT}, ()=>Array(BOARD_WIDTH).fill(null));
+const createEmptyBoard = () =>
+  Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
 
 export default function TetrisGame() {
   const [board, setBoard] = useState(createEmptyBoard());
@@ -74,14 +85,38 @@ export default function TetrisGame() {
   const [score, setScore] = useState(0);
   const [gameStarted, setGameStarted] = useState(false);
 
-  const generateRandomPiece = useCallback(()=>{
-     const piece = Object.keys(TETROMINOES);
-     const randomPiece = piece[Math.floor(Math.random() *piece.length)];
-     return{
+  const generateRandomPiece = useCallback(() => {
+    const piece = Object.keys(TETROMINOES);
+    const randomPiece = piece[Math.floor(Math.random() * piece.length)];
+    return {
       shape: TETROMINOES[randomPiece].shape,
-      color: TETROMINOES[randomPiece].color
-     }
-  },[]);
+      color: TETROMINOES[randomPiece].color,
+    };
+  }, []);
+
+  const checkCollision = useCallback(
+    (piece: Piece, position: Position) => {
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            const newX = position.x + x;
+            const newY = position.y + y;
+
+            if (
+              newX < 0 ||
+              newX >= BOARD_WIDTH ||
+              newY >= BOARD_HEIGHT ||
+              (newY >= 0 && board[newY][newX])
+            ) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
+    [board]
+  );
 
   return (
     <Card className="w-full max-w-lg mx-auto">
