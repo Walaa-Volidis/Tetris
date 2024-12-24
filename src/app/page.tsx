@@ -133,6 +133,25 @@ export default function TetrisGame() {
     return newBoard;
   }, [board, currentPiece, currentPosition]);
 
+  const clearRows = useCallback((board: number[][]) => {
+    let clearedRows = 0;
+    const newBoard = board.filter((row: number[]) => {
+      if (row.every((cell: number) => cell !== null)) {
+        clearedRows++;
+        return false;
+      }
+      return true;
+    });
+
+    while(newBoard.length < BOARD_HEIGHT){
+     newBoard.unshift(Array(BOARD_WIDTH).fill(null));
+    }
+    if(clearedRows > 0){
+      setScore((prevScore) => prevScore + clearedRows * 100);
+    }
+    return newBoard;
+  }, []);
+
   const renderBoard = () => {
     const displayBoard = board.map((row) => [...row]);
 
