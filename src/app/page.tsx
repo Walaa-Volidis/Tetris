@@ -78,7 +78,7 @@ const createEmptyBoard = () =>
 
 export default function TetrisGame() {
   const [board, setBoard] = useState(createEmptyBoard());
-  const [currentPiece, setCurrentPiece] = useState(null);
+  const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
   const [currentPosition, setCurrentPosition] = useState({ x: 0, y: 0 });
   const [gameOver, setGameOver] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -117,6 +117,21 @@ export default function TetrisGame() {
     },
     [board]
   );
+
+  const mergePieceWithBoard = useCallback(() => {
+    const newBoard = board.map((row) => [...row]);
+    for (let y = 0; y < currentPiece!.shape.length; y++) {
+      for (let x = 0; x < currentPiece!.shape[0].length; x++) {
+        if (currentPiece!.shape[y][x]) {
+          const boardY = currentPosition.y + y;
+          if (boardY >= 0) {
+            newBoard[boardY][currentPosition.x + x] = currentPiece!.color;
+          }
+        }
+      }
+    }
+    return newBoard;
+  }, [board, currentPiece, currentPosition]);
 
   const renderBoard = () => {
     const displayBoard = board.map((row) => [...row]);
