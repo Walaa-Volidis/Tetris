@@ -152,6 +152,42 @@ export default function TetrisGame() {
     return newBoard;
   }, []);
 
+
+    const moveDown = useCallback(() => {
+      if (gameOver || isPaused || !gameStarted) return;
+
+      const newPosition = { ...currentPosition, y: currentPosition.y + 1 };
+
+      if (checkCollision(currentPiece!, newPosition)) {
+        const newBoard = mergePieceWithBoard();
+        const clearedBoard = clearRows(newBoard);
+        setBoard(clearedBoard);
+
+        const newPiece = generateRandomPiece();
+        const newPiecePosition = { x: Math.floor(BOARD_WIDTH / 2) - 1, y: -2 };
+
+        if (checkCollision(newPiece, newPiecePosition)) {
+          setGameOver(true);
+        } else {
+          setCurrentPiece(newPiece);
+          setCurrentPosition(newPiecePosition);
+        }
+      } else {
+        setCurrentPosition(newPosition);
+      }
+    }, [
+      currentPiece,
+      currentPosition,
+      board,
+      gameOver,
+      isPaused,
+      gameStarted,
+      checkCollision,
+      mergePieceWithBoard,
+      clearRows,
+      generateRandomPiece,
+    ]);
+
   const renderBoard = () => {
     const displayBoard = board.map((row) => [...row]);
 
@@ -187,6 +223,8 @@ export default function TetrisGame() {
     setGameStarted(true);
     setIsPaused(false);
   };
+
+  
 
   return (
     <Card className="w-full max-w-lg mx-auto">
