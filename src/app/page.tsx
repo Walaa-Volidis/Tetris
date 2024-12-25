@@ -2,14 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  Play,
-  Pause,
-  RotateCw,
-  ArrowDown,
-  ArrowLeft,
-  ArrowRight,
-} from 'lucide-react';
+import { Play, Pause, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 
 const TETROMINOES = {
   I: {
@@ -188,7 +181,7 @@ export default function TetrisGame() {
   ]);
 
   const moveHorizontally = useCallback(
-    (direction :number) => {
+    (direction: number) => {
       if (gameOver || isPaused || !gameStarted) return;
 
       const newPosition = {
@@ -233,6 +226,35 @@ export default function TetrisGame() {
 
     return displayBoard;
   };
+
+  useEffect(() => {
+    const handleKeyPress = (event) => {
+      switch (event.key) {
+        case 'ArrowLeft':
+          moveHorizontally(-1);
+          break;
+        case 'ArrowRight':
+          moveHorizontally(1);
+          break;
+        case 'ArrowDown':
+          moveDown();
+          break;
+        case ' ':
+          setIsPaused((prev) => !prev);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [moveHorizontally, moveDown]);
+
+  useEffect(() => {
+    if (!gameStarted || gameOver || isPaused) return;
+
+    const gameLoop = setInterval(moveDown, 1000);
+    return () => clearInterval(gameLoop);
+  }, [gameStarted, gameOver, isPaused, moveDown]);
 
   const startNewGame = () => {
     setBoard(createEmptyBoard());
@@ -290,9 +312,6 @@ export default function TetrisGame() {
                 </Button>
                 <Button onClick={() => moveHorizontally(1)}>
                   <ArrowRight className="w-4 h-4" />
-                </Button>
-                <Button onClick={rotatePiece}>
-                  <RotateCw className="w-4 h-4" />
                 </Button>
               </>
             )}
