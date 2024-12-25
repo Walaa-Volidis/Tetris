@@ -143,50 +143,71 @@ export default function TetrisGame() {
       return true;
     });
 
-    while(newBoard.length < BOARD_HEIGHT){
-     newBoard.unshift(Array(BOARD_WIDTH).fill(null));
+    while (newBoard.length < BOARD_HEIGHT) {
+      newBoard.unshift(Array(BOARD_WIDTH).fill(null));
     }
-    if(clearedRows > 0){
+    if (clearedRows > 0) {
       setScore((prevScore) => prevScore + clearedRows * 100);
     }
     return newBoard;
   }, []);
 
+  const moveDown = useCallback(() => {
+    if (gameOver || isPaused || !gameStarted) return;
 
-    const moveDown = useCallback(() => {
+    const newPosition = { ...currentPosition, y: currentPosition.y + 1 };
+
+    if (checkCollision(currentPiece!, newPosition)) {
+      const newBoard = mergePieceWithBoard();
+      const clearedBoard = clearRows(newBoard);
+      setBoard(clearedBoard);
+
+      const newPiece = generateRandomPiece();
+      const newPiecePosition = { x: Math.floor(BOARD_WIDTH / 2) - 1, y: -2 };
+
+      if (checkCollision(newPiece, newPiecePosition)) {
+        setGameOver(true);
+      } else {
+        setCurrentPiece(newPiece);
+        setCurrentPosition(newPiecePosition);
+      }
+    } else {
+      setCurrentPosition(newPosition);
+    }
+  }, [
+    currentPiece,
+    currentPosition,
+    board,
+    gameOver,
+    isPaused,
+    gameStarted,
+    checkCollision,
+    mergePieceWithBoard,
+    clearRows,
+    generateRandomPiece,
+  ]);
+
+  const moveHorizontally = useCallback(
+    (direction :number) => {
       if (gameOver || isPaused || !gameStarted) return;
 
-      const newPosition = { ...currentPosition, y: currentPosition.y + 1 };
-
-      if (checkCollision(currentPiece!, newPosition)) {
-        const newBoard = mergePieceWithBoard();
-        const clearedBoard = clearRows(newBoard);
-        setBoard(clearedBoard);
-
-        const newPiece = generateRandomPiece();
-        const newPiecePosition = { x: Math.floor(BOARD_WIDTH / 2) - 1, y: -2 };
-
-        if (checkCollision(newPiece, newPiecePosition)) {
-          setGameOver(true);
-        } else {
-          setCurrentPiece(newPiece);
-          setCurrentPosition(newPiecePosition);
-        }
-      } else {
+      const newPosition = {
+        ...currentPosition,
+        x: currentPosition.x + direction,
+      };
+      if (!checkCollision(currentPiece!, newPosition)) {
         setCurrentPosition(newPosition);
       }
-    }, [
+    },
+    [
       currentPiece,
       currentPosition,
-      board,
       gameOver,
       isPaused,
       gameStarted,
       checkCollision,
-      mergePieceWithBoard,
-      clearRows,
-      generateRandomPiece,
-    ]);
+    ]
+  );
 
   const renderBoard = () => {
     const displayBoard = board.map((row) => [...row]);
@@ -223,8 +244,6 @@ export default function TetrisGame() {
     setGameStarted(true);
     setIsPaused(false);
   };
-
-  
 
   return (
     <Card className="w-full max-w-lg mx-auto">
