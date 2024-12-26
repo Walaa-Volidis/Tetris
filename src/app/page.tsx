@@ -80,7 +80,7 @@ export default function TetrisGame() {
 
   const generateRandomPiece = useCallback(() => {
     const piece = Object.keys(TETROMINOES);
-    const randomPiece = piece[Math.floor(Math.random() * piece.length)];
+    const randomPiece = piece[Math.floor(Math.random() * piece.length)] as keyof typeof TETROMINOES;
     return {
       shape: TETROMINOES[randomPiece].shape,
       color: TETROMINOES[randomPiece].color,
@@ -322,7 +322,7 @@ export default function TetrisGame() {
           )}
 
           <div className="text-sm text-gray-500">
-            Use arrow keys to move and rotate. Space to pause.
+            Use arrow keys to move. Space to pause.
           </div>
         </div>
       </CardContent>
