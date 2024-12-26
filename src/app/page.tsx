@@ -228,7 +228,7 @@ export default function TetrisGame() {
   };
 
   useEffect(() => {
-    const handleKeyPress = (event) => {
+    const handleKeyPress = (event: KeyboardEvent) => {
       switch (event.key) {
         case 'ArrowLeft':
           moveHorizontally(-1);
