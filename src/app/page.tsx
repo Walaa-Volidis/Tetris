@@ -1,101 +1,331 @@
-import Image from "next/image";
+'use client';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Play, Pause, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 
-export default function Home() {
+const TETROMINOES = {
+  I: {
+    shape: [[1, 1, 1, 1]],
+    color: 'bg-cyan-500',
+  },
+  J: {
+    shape: [
+      [1, 0, 0],
+      [1, 1, 1],
+    ],
+    color: 'bg-blue-500',
+  },
+  L: {
+    shape: [
+      [0, 0, 1],
+      [1, 1, 1],
+    ],
+    color: 'bg-orange-500',
+  },
+  O: {
+    shape: [
+      [1, 1],
+      [1, 1],
+    ],
+    color: 'bg-yellow-500',
+  },
+  S: {
+    shape: [
+      [0, 1, 1],
+      [1, 1, 0],
+    ],
+    color: 'bg-green-500',
+  },
+  T: {
+    shape: [
+      [0, 1, 0],
+      [1, 1, 1],
+    ],
+    color: 'bg-purple-500',
+  },
+  Z: {
+    shape: [
+      [1, 1, 0],
+      [0, 1, 1],
+    ],
+    color: 'bg-red-500',
+  },
+};
+
+type Piece = {
+  shape: number[][];
+  color: string;
+};
+
+type Position = {
+  x: number;
+  y: number;
+};
+
+const BOARD_WIDTH = 10;
+const BOARD_HEIGHT = 20;
+
+const createEmptyBoard = () =>
+  Array.from({ length: BOARD_HEIGHT }, () => Array(BOARD_WIDTH).fill(null));
+
+export default function TetrisGame() {
+  const [board, setBoard] = useState(createEmptyBoard());
+  const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
+  const [currentPosition, setCurrentPosition] = useState({ x: 0, y: 0 });
+  const [gameOver, setGameOver] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [score, setScore] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+
+  const generateRandomPiece = useCallback(() => {
+    const piece = Object.keys(TETROMINOES);
+    const randomPiece = piece[Math.floor(Math.random() * piece.length)] as keyof typeof TETROMINOES;
+    return {
+      shape: TETROMINOES[randomPiece].shape,
+      color: TETROMINOES[randomPiece].color,
+    };
+  }, []);
+
+  const checkCollision = useCallback(
+    (piece: Piece, position: Position) => {
+      for (let y = 0; y < piece.shape.length; y++) {
+        for (let x = 0; x < piece.shape[y].length; x++) {
+          if (piece.shape[y][x]) {
+            const newX = position.x + x;
+            const newY = position.y + y;
+
+            if (
+              newX < 0 ||
+              newX >= BOARD_WIDTH ||
+              newY >= BOARD_HEIGHT ||
+              (newY >= 0 && board[newY][newX])
+            ) {
+              return true;
+            }
+          }
+        }
+      }
+      return false;
+    },
+    [board]
+  );
+
+  const mergePieceWithBoard = useCallback(() => {
+    const newBoard = board.map((row) => [...row]);
+    for (let y = 0; y < currentPiece!.shape.length; y++) {
+      for (let x = 0; x < currentPiece!.shape[0].length; x++) {
+        if (currentPiece!.shape[y][x]) {
+          const boardY = currentPosition.y + y;
+          if (boardY >= 0) {
+            newBoard[boardY][currentPosition.x + x] = currentPiece!.color;
+          }
+        }
+      }
+    }
+    return newBoard;
+  }, [board, currentPiece, currentPosition]);
+
+  const clearRows = useCallback((board: number[][]) => {
+    let clearedRows = 0;
+    const newBoard = board.filter((row: number[]) => {
+      if (row.every((cell: number) => cell !== null)) {
+        clearedRows++;
+        return false;
+      }
+      return true;
+    });
+
+    while (newBoard.length < BOARD_HEIGHT) {
+      newBoard.unshift(Array(BOARD_WIDTH).fill(null));
+    }
+    if (clearedRows > 0) {
+      setScore((prevScore) => prevScore + clearedRows * 100);
+    }
+    return newBoard;
+  }, []);
+
+  const moveDown = useCallback(() => {
+    if (gameOver || isPaused || !gameStarted) return;
+
+    const newPosition = { ...currentPosition, y: currentPosition.y + 1 };
+
+    if (checkCollision(currentPiece!, newPosition)) {
+      const newBoard = mergePieceWithBoard();
+      const clearedBoard = clearRows(newBoard);
+      setBoard(clearedBoard);
+
+      const newPiece = generateRandomPiece();
+      const newPiecePosition = { x: Math.floor(BOARD_WIDTH / 2) - 1, y: -2 };
+
+      if (checkCollision(newPiece, newPiecePosition)) {
+        setGameOver(true);
+      } else {
+        setCurrentPiece(newPiece);
+        setCurrentPosition(newPiecePosition);
+      }
+    } else {
+      setCurrentPosition(newPosition);
+    }
+  }, [
+    currentPiece,
+    currentPosition,
+    board,
+    gameOver,
+    isPaused,
+    gameStarted,
+    checkCollision,
+    mergePieceWithBoard,
+    clearRows,
+    generateRandomPiece,
+  ]);
+
+  const moveHorizontally = useCallback(
+    (direction: number) => {
+      if (gameOver || isPaused || !gameStarted) return;
+
+      const newPosition = {
+        ...currentPosition,
+        x: currentPosition.x + direction,
+      };
+      if (!checkCollision(currentPiece!, newPosition)) {
+        setCurrentPosition(newPosition);
+      }
+    },
+    [
+      currentPiece,
+      currentPosition,
+      gameOver,
+      isPaused,
+      gameStarted,
+      checkCollision,
+    ]
+  );
+
+  const renderBoard = () => {
+    const displayBoard = board.map((row) => [...row]);
+
+    if (currentPiece) {
+      for (let y = 0; y < currentPiece.shape.length; y++) {
+        for (let x = 0; x < currentPiece.shape[y].length; x++) {
+          if (currentPiece.shape[y][x]) {
+            const boardY = currentPosition.y + y;
+            const boardX = currentPosition.x + x;
+            if (
+              boardY >= 0 &&
+              boardY < BOARD_HEIGHT &&
+              boardX >= 0 &&
+              boardX < BOARD_WIDTH
+            ) {
+              displayBoard[boardY][boardX] = currentPiece.color;
+            }
+          }
+        }
+      }
+    }
+
+    return displayBoard;
+  };
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      switch (event.key) {
+        case 'ArrowLeft':
+          moveHorizontally(-1);
+          break;
+        case 'ArrowRight':
+          moveHorizontally(1);
+          break;
+        case 'ArrowDown':
+          moveDown();
+          break;
+        case ' ':
+          setIsPaused((prev) => !prev);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [moveHorizontally, moveDown]);
+
+  useEffect(() => {
+    if (!gameStarted || gameOver || isPaused) return;
+
+    const gameLoop = setInterval(moveDown, 1000);
+    return () => clearInterval(gameLoop);
+  }, [gameStarted, gameOver, isPaused, moveDown]);
+
+  const startNewGame = () => {
+    setBoard(createEmptyBoard());
+    const newPiece = generateRandomPiece();
+    setCurrentPiece(newPiece);
+    setCurrentPosition({ x: Math.floor(BOARD_WIDTH / 2) - 1, y: -2 });
+    setGameOver(false);
+    setScore(0);
+    setGameStarted(true);
+    setIsPaused(false);
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <Card className="w-full max-w-lg mx-auto">
+      <CardHeader>
+        <CardTitle className="text-center">Tetris</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-xl font-bold">Score: {score}</div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          <div className="border-2 border-gray-200 p-1">
+            <div className="grid grid-cols-10 gap-px bg-gray-200">
+              {renderBoard().map((row, rowIndex) =>
+                row.map((cell, colIndex) => (
+                  <div
+                    key={`${rowIndex}-${colIndex}`}
+                    className={`w-6 h-6 ${cell || 'bg-white'}`}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            {!gameStarted || gameOver ? (
+              <Button onClick={startNewGame}>
+                <Play className="w-4 h-4 mr-2" />
+                {gameOver ? 'Play Again' : 'Start Game'}
+              </Button>
+            ) : (
+              <>
+                <Button onClick={() => setIsPaused(!isPaused)}>
+                  {isPaused ? (
+                    <Play className="w-4 h-4" />
+                  ) : (
+                    <Pause className="w-4 h-4" />
+                  )}
+                </Button>
+                <Button onClick={() => moveHorizontally(-1)}>
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <Button onClick={moveDown}>
+                  <ArrowDown className="w-4 h-4" />
+                </Button>
+                <Button onClick={() => moveHorizontally(1)}>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </>
+            )}
+          </div>
+
+          {gameOver && (
+            <div className="text-xl font-bold text-red-500">Game Over!</div>
+          )}
+
+          <div className="text-sm text-gray-500">
+            Use arrow keys to move. Space to pause.
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
